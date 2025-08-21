@@ -3,10 +3,8 @@
 一个集成导航和博客功能的现代化个人站点，采用单文件架构，支持离线部署。
 
 ## 📸 项目预览
+<img width="1920" height="1080" alt="382shots_so" src="https://github.com/user-attachments/assets/5a613493-1802-4a99-b9d3-b984a3aa64fc" />
 
-![项目截图1](https://i.111666.best/image/ghc2DM7K1277zsrQYZHeiw.png)
-
-![项目截图2](https://i.111666.best/image/OIchezcoCKXVkIssJJm7cM.png)
 ## ✨ 特色功能
 
 ### 🎯 双模式设计
