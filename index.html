@@ -1,0 +1,3167 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>优雅·简约个人站</title>
+    <meta name="description" content="一个优雅、简约的个人站点，集成导航和博客功能。支持搜索、标签筛选、暗色/亮色主题、导入导出 JSON、RSS。" />
+    <link rel="icon" href="./assets/favicon.png" type="image/png">
+    <style>
+        /* ===== 设计系统（CSS 变量） ===== */
+        :root {
+            --bg: #f7f7f8;
+            --surface: #ffffff;
+            --surface-2: #f4f4f6;
+            --text: #0c0c0d;
+            --muted: #6a6a6d;
+            --border: #e6e6e9;
+            --accent: #4c83ff;
+            /* 主色，可切换 */
+            --ring: color-mix(in oklab, var(--accent) 35%, white);
+            --radius: 16px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .06);
+            --focus: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+            --container: min(1120px, 94vw);
+            --sidebar: 280px;
+            --gap: clamp(14px, 2vw, 18px);
+            --code-bg: #0d0f14;
+            --code-text: #eaeaf0;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0c0d10;
+            --surface: #111318;
+            --surface-2: #0e1014;
+            --text: #e9e9ee;
+            --muted: #9a9aa3;
+            --border: #1f2229;
+            --accent: #6aa1ff;
+            --ring: color-mix(in oklab, var(--accent) 20%, black);
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --code-bg: #0a0c10;
+            --code-text: #e9e9f2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font: 15px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans CJK SC";
+            color: var(--text);
+            background:
+                radial-gradient(1200px 800px at 80% -10%, color-mix(in oklab, var(--accent) 12%, transparent), transparent) no-repeat,
+                radial-gradient(1000px 700px at -10% 10%, color-mix(in oklab, var(--accent) 10%, transparent), transparent) no-repeat,
+                var(--bg);
+            letter-spacing: .2px;
+        }
+
+        /* 文字选择颜色 */
+        ::selection {
+            background: color-mix(in oklab, var(--accent) 25%, transparent);
+            color: var(--text);
+        }
+
+        ::-moz-selection {
+            background: color-mix(in oklab, var(--accent) 25%, transparent);
+            color: var(--text);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        a.link {
+            color: color-mix(in oklab, var(--accent) 90%, white);
+        }
+
+        .wrap {
+            width: var(--container);
+            margin: 28px auto 80px;
+        }
+
+        /* ===== 顶栏 ===== */
+        header.topbar {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            backdrop-filter: saturate(1.2) blur(10px);
+            background: color-mix(in oklab, var(--bg) 70%, transparent);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .topbar-inner {
+            width: var(--container);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            background: url('./assets/favicon.png') center/cover;
+            box-shadow: inset 0 -10px 18px rgba(0, 0, 0, .12);
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: .3px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn,
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, .08);
+        }
+
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: var(--focus);
+        }
+
+        .btn.ghost {
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .btn.primary {
+            background: color-mix(in oklab, var(--accent) 96%, #fff);
+            color: white;
+            border-color: color-mix(in oklab, var(--accent) 88%, #fff);
+        }
+
+        /* ===== 导航标签 ===== */
+        .nav-tabs {
+            display: inline-flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 4px;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-tabs button {
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            color: var(--muted);
+        }
+
+        .nav-tabs button[aria-pressed="true"] {
+            background: color-mix(in oklab, var(--accent) 10%, transparent);
+            color: var(--text);
+        }
+
+        /* ===== 布局 ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--gap);
+        }
+
+        @media (min-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr var(--sidebar);
+            }
+        }
+
+        /* 搜索框 */
+        .search {
+            position: relative;
+            margin: 18px 0 10px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search input {
+            height: 48px;
+            width: 100%;
+            padding: 0 44px 0 44px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        .search .iconL,
+        .search .iconR {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            opacity: .7;
+        }
+
+        .search .iconL {
+            left: 14px;
+        }
+
+        .search .iconR {
+            right: 14px;
+        }
+
+        .search .clear-btn {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: color-mix(in oklab, var(--muted) 20%, transparent);
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            transition: all .2s ease;
+        }
+
+        .search .clear-btn:hover {
+            background: color-mix(in oklab, var(--muted) 30%, transparent);
+            color: var(--text);
+        }
+
+        .search .clear-btn.show {
+            display: flex;
+        }
+
+        .kbd {
+            font: 12px/1.2 ui-sans-serif;
+            padding: 3px 6px;
+            border: 1px solid var(--border);
+            border-bottom-width: 2px;
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--muted);
+        }
+
+        /* 标签条 */
+        .tagbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 8px 0 18px;
+        }
+
+        .chip {
+            height: 34px;
+            padding: 0 12px;
+        }
+
+        .chip[data-active="true"] {
+            border-color: color-mix(in oklab, var(--accent) 60%, #fff);
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+        }
+
+        /* 视图切换 */
+        .viewtabs {
+            display: inline-flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 4px;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .viewtabs button {
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            color: var(--muted);
+        }
+
+        .viewtabs button[aria-pressed="true"] {
+            background: color-mix(in oklab, var(--accent) 10%, transparent);
+            color: var(--text);
+        }
+
+        /* 网格卡片 */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--gap);
+        }
+
+        @media (min-width: 720px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .grid.nav-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .card {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: grid;
+            gap: 10px;
+            box-shadow: var(--shadow);
+            transition: transform .16s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 44px rgba(0, 0, 0, .12);
+            border-color: color-mix(in oklab, var(--accent) 20%, var(--border));
+        }
+
+        .card:focus-visible {
+            outline: none;
+            box-shadow: var(--focus);
+        }
+
+        /* 导航卡片样式 */
+        .nav-card {
+            padding: 14px;
+        }
+
+        .nav-card .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .favicon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: inset 0 0 0 1px var(--border);
+        }
+
+        .favicon.error {
+            background: var(--surface-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .favicon.error::after {
+            content: "🌐";
+        }
+
+        .nav-card h3 {
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.4;
+            letter-spacing: .2px;
+        }
+
+        .nav-card .desc {
+            font-size: 12px;
+            color: var(--muted);
+            min-height: 32px;
+        }
+
+        .open {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+
+        .card:hover .open {
+            opacity: 1;
+        }
+
+        .open:hover {
+            border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+        }
+
+        /* ===== Editorial Rail 博客卡片样式 ===== */
+
+        /* 基础卡片 */
+        .post {
+            position: relative;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            transition: transform .25s ease, box-shadow .25s ease;
+            cursor: pointer;
+        }
+
+        .post:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, .12);
+        }
+
+        /* Editorial Rail：左侧日期导轨 */
+        .post--rail {
+            display: grid;
+            grid-template-columns: 76px 1fr;
+        }
+
+        .post--rail::before {
+            content: "";
+            position: absolute;
+            left: 75px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .rail {
+            position: relative;
+            padding: 18px 0;
+            display: grid;
+            place-items: center;
+        }
+
+        .rail .day {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--accent), transparent 70%), transparent 40%),
+                linear-gradient(180deg, color-mix(in oklab, var(--surface), #000 4%), var(--surface));
+            border: 1px solid var(--border);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        .rail .month {
+            position: absolute;
+            bottom: 10px;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .rail .pin {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: color-mix(in oklab, var(--accent), transparent 86%);
+            color: color-mix(in oklab, var(--accent), #000 20%);
+            border: 1px solid color-mix(in oklab, var(--accent), transparent 70%);
+            white-space: nowrap;
+        }
+
+        /* Featured：跨两列带封面的大卡 */
+        .post--featured {
+            grid-column: 1/-1;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+        }
+
+        .cover {
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+            background: var(--surface-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cover-placeholder {
+            color: var(--muted);
+            font-size: 14px;
+            padding: 20px;
+        }
+
+        .cover .cap {
+            position: absolute;
+            left: 14px;
+            bottom: 14px;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            background: color-mix(in oklab, var(--accent), transparent 80%);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+        }
+
+        /* 内容区 */
+        .content {
+            padding: 18px 18px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* 普通文章的内容区更紧凑 */
+        .post--rail .content {
+            padding: 20px 12px 8px;
+            gap: 6px;
+        }
+
+        .title {
+            margin: 0;
+            font-weight: 800;
+            font-size: clamp(18px, 2.2vw, 22px);
+            line-height: 1.35;
+            min-height: 2.7em;
+            /* 确保至少有两行的高度 */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 普通文章的标题更小 */
+        .post--rail .title {
+            font-size: clamp(15px, 1.8vw, 17px);
+            font-weight: 700;
+            min-height: 2.2em;
+            /* 对应较小字体的两行高度 */
+            line-height: 1.3;
+        }
+
+        .title a {
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: color .2s ease, border-color .2s ease;
+        }
+
+        .title a:hover {
+            color: var(--accent);
+            border-color: color-mix(in oklab, var(--accent), transparent 55%);
+        }
+
+        .meta {
+            font-size: 0.88rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* 普通文章的meta信息更小 */
+        .post--rail .meta {
+            font-size: 0.75rem;
+            gap: 6px;
+            margin: 2px 0;
+        }
+
+        .excerpt {
+            color: color-mix(in oklab, var(--text), #000 10%);
+            font-size: 0.98rem;
+            margin-top: 2px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.78rem;
+            padding: 5px 10px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: var(--muted);
+            background: color-mix(in oklab, var(--muted), transparent 92%);
+            border: 1px solid color-mix(in oklab, var(--muted), transparent 85%);
+            transition: all .2s ease;
+        }
+
+        /* 普通文章的标签更小 */
+        .post--rail .tag {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+        }
+
+        .tag:hover {
+            color: var(--accent);
+            background: color-mix(in oklab, var(--accent), transparent 90%);
+            border-color: color-mix(in oklab, var(--accent), transparent 75%);
+        }
+
+        .foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        /* 特色文章的foot只有按钮，左对齐 */
+        .post--featured .foot {
+            justify-content: flex-start;
+        }
+
+        .read-time {
+            font-size: 0.7rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        /* 分页样式 */
+        .pagination-wrapper {
+            width: 100%;
+            text-align: center;
+        }
+
+        .pagination {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 24px 0 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            min-width: 40px;
+            height: 40px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .pagination-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .pagination-btn.active:hover {
+            background: var(--accent);
+            color: white;
+            transform: none;
+        }
+
+        .pagination-ellipsis {
+            padding: 8px 4px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .pagination-info {
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .pagination {
+                gap: 4px;
+            }
+
+            .pagination-btn {
+                min-width: 36px;
+                height: 36px;
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            font-weight: 650;
+            font-size: 0.92rem;
+            text-decoration: none;
+            color: var(--text);
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, color-mix(in oklab, var(--surface), #000 3%), var(--surface));
+            transition: transform .2s ease, border-color .2s ease;
+        }
+
+        /* 普通文章的按钮更小 */
+        .post--rail .btn {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in oklab, var(--border), #000 30%);
+            color: var(--accent);
+        }
+
+        /* 可点击整卡 */
+        .stretched {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            border-radius: inherit;
+        }
+
+        .tags a,
+        .btn {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 860px) {
+            .post--featured {
+                grid-template-columns: 1fr;
+            }
+
+            .cover {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                min-height: 120px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .post--rail {
+                grid-template-columns: 60px 1fr;
+            }
+
+            .post--rail::before {
+                left: 59px;
+            }
+
+            .rail .day {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .rail .month {
+                font-size: 0.7rem;
+            }
+
+            .content {
+                padding: 14px 14px 12px;
+            }
+
+            .title {
+                font-size: clamp(16px, 2vw, 18px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .post--rail {
+                grid-template-columns: 50px 1fr;
+            }
+
+            .post--rail::before {
+                left: 49px;
+            }
+
+            .rail {
+                padding: 12px 0;
+            }
+
+            .rail .day {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+
+            .content {
+                padding: 12px;
+                gap: 6px;
+            }
+
+            .meta {
+                font-size: 0.8rem;
+                gap: 8px;
+            }
+
+            .excerpt {
+                font-size: 0.9rem;
+            }
+
+            .tags {
+                gap: 6px;
+            }
+
+            .tag {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+
+            .btn {
+                padding: 7px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* 旧样式保持兼容 */
+        .post-title {
+            font-size: 18px;
+            margin: 0 0 6px 0;
+            letter-spacing: .2px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 12px 0 8px 0;
+        }
+
+        .t {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: all .2s ease;
+            text-decoration: none;
+        }
+
+        .t:hover {
+            border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+            background: color-mix(in oklab, var(--accent) 5%, transparent);
+        }
+
+        /* 博客卡片内的标签按钮样式 */
+        .t.tag-filter {
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .t.tag-filter:hover {
+            border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+            background: color-mix(in oklab, var(--accent) 8%, transparent);
+            color: var(--accent);
+        }
+
+        .t.tag-filter.active {
+            border-color: var(--accent);
+            background: color-mix(in oklab, var(--accent) 15%, transparent);
+            color: var(--accent);
+        }
+
+        /* 侧边栏标签云按钮样式 */
+        .t.sidebar-tag-filter {
+            background: transparent;
+            cursor: pointer;
+            margin: 2px;
+        }
+
+        .t.sidebar-tag-filter:hover {
+            border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+            background: color-mix(in oklab, var(--accent) 8%, transparent);
+            color: var(--accent);
+        }
+
+        .t.sidebar-tag-filter.active {
+            border-color: var(--accent);
+            background: color-mix(in oklab, var(--accent) 15%, transparent);
+            color: var(--accent);
+        }
+
+        /* 标签展开按钮样式 - 美化版 */
+        .t.expand-tags {
+            background: var(--surface);
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all .2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+        }
+
+        .t.expand-tags:hover {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+        }
+
+        .t.expand-tags::before {
+            content: "⌄";
+            font-size: 14px;
+            transition: transform .2s ease;
+        }
+
+        /* 标签收起按钮样式 - 美化版 */
+        .t.collapse-tags {
+            background: var(--surface);
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all .2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+        }
+
+        .t.collapse-tags:hover {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+        }
+
+        .t.collapse-tags::before {
+            content: "⌃";
+            font-size: 14px;
+            transition: transform .2s ease;
+        }
+
+        /* 侧边栏展开按钮样式 - 美化版 */
+        .t.expand-sidebar-tags {
+            background: var(--surface);
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all .2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            margin-left: 8px;
+        }
+
+        .t.expand-sidebar-tags:hover {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+        }
+
+        .t.expand-sidebar-tags::before {
+            content: "⌄";
+            font-size: 14px;
+            transition: transform .2s ease;
+        }
+
+        /* 侧边栏收起按钮样式 - 美化版 */
+        .t.collapse-sidebar-tags {
+            background: var(--surface);
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all .2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            margin-left: 8px;
+        }
+
+        .t.collapse-sidebar-tags:hover {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+        }
+
+        .t.collapse-sidebar-tags::before {
+            content: "⌃";
+            font-size: 14px;
+            transition: transform .2s ease;
+        }
+
+        /* ===== 归档页面样式 - Ledger 风格 ===== */
+        .archive-header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .archive-title h2 {
+            margin: 0 0 8px 0;
+            font-size: clamp(22px, 2.6vw, 30px);
+            font-weight: 600;
+        }
+
+        .archive-summary {
+            color: var(--muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .archive-timeline {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 年份标题栏 - 粘性定位 */
+        .archive-year {
+            margin-bottom: 32px;
+        }
+
+        .archive-year-header {
+            position: sticky;
+            top: 10px;
+            z-index: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .archive-year-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 85%);
+            flex-shrink: 0;
+        }
+
+        .archive-year-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .archive-year-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .archive-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: color-mix(in oklab, var(--accent), transparent 88%);
+            color: color-mix(in oklab, var(--accent), #000 22%);
+            border: 1px solid color-mix(in oklab, var(--accent), transparent 70%);
+        }
+
+        /* 表格式文章列表 */
+        .archive-table {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .archive-row {
+            display: grid;
+            grid-template-columns: 72px 1fr 220px;
+            gap: 0;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px dashed var(--border);
+            transition: background .2s ease;
+        }
+
+        .archive-row:first-child {
+            border-top: none;
+        }
+
+        .archive-row:hover {
+            background: color-mix(in oklab, var(--accent) 4%, transparent);
+        }
+
+        .archive-col-day {
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+            color: color-mix(in oklab, var(--text), #000 18%);
+            font-size: 14px;
+        }
+
+        .archive-col-title {
+            min-width: 0;
+        }
+
+        .archive-col-title a {
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: color .2s ease, border-color .2s ease;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .archive-col-title a:hover {
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .archive-col-title .small {
+            color: var(--muted);
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .archive-col-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-self: end;
+        }
+
+        .archive-tag-ghost {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            text-decoration: none;
+            transition: background .2s ease;
+        }
+
+        .archive-tag-ghost:hover {
+            background: var(--border);
+        }
+
+        /* 响应式优化 - Ledger 风格 */
+        @media (max-width: 768px) {
+            .archive-timeline {
+                max-width: 100%;
+            }
+
+            .archive-year-header {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+
+            .archive-year-stats {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-end;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .archive-row {
+                grid-template-columns: 64px 1fr;
+            }
+
+            .archive-col-tags {
+                grid-column: 2;
+                justify-self: start;
+                margin-top: 6px;
+            }
+        }
+
+        .excerpt {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.65;
+            min-height: 42px;
+            margin: 8px 0 12px 0;
+        }
+
+        .readmore {
+            align-self: start;
+        }
+
+        /* 文章页 */
+        .article {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .article-hd {
+            padding: 20px 20px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .article-hd h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+        }
+
+        .article-bd {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 980px) {
+            .article-bd {
+                grid-template-columns: 1fr 240px;
+            }
+        }
+
+        .article-content {
+            padding: 4px 20px 24px;
+        }
+
+        .article-aside {
+            padding: 14px;
+            border-left: 1px solid var(--border);
+        }
+
+        .article-content h2 {
+            font-size: 20px;
+            margin: 22px 0 8px;
+        }
+
+        .article-content h3 {
+            font-size: 17px;
+            margin: 18px 0 6px;
+        }
+
+        .article-content p {
+            margin: 12px 0;
+        }
+
+        .article-content blockquote {
+            margin: 12px 0;
+            padding: 10px 12px;
+            border-left: 3px solid color-mix(in oklab, var(--accent) 40%, #fff);
+            background: var(--surface-2);
+            border-radius: 10px;
+        }
+
+        .article-content code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: .9em;
+        }
+
+        .article-content pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 12px 14px;
+            border-radius: 12px;
+            overflow: auto;
+            border: 1px solid var(--border);
+        }
+
+        /* 代码块中的文字选择 */
+        .article-content pre ::selection,
+        .article-content code ::selection {
+            background: color-mix(in oklab, var(--accent) 40%, transparent);
+            color: var(--code-text);
+        }
+
+        .article-content pre ::-moz-selection,
+        .article-content code ::-moz-selection {
+            background: color-mix(in oklab, var(--accent) 40%, transparent);
+            color: var(--code-text);
+        }
+
+        .toc {
+            font-size: 13px;
+            position: sticky;
+            top: 80px;
+        }
+
+        .toc h4 {
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: .3px;
+        }
+
+        .toc a {
+            display: block;
+            padding: 6px 8px;
+            border-radius: 8px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all .2s ease;
+            border-left: 2px solid transparent;
+        }
+
+        .toc a:hover {
+            background: color-mix(in oklab, var(--accent) 5%, transparent);
+            color: var(--text);
+        }
+
+        .toc a[aria-current="true"] {
+            background: color-mix(in oklab, var(--accent) 10%, transparent);
+            color: var(--accent);
+            border-left-color: var(--accent);
+            font-weight: 500;
+        }
+
+        .progress {
+            height: 2px;
+            background: color-mix(in oklab, var(--accent) 30%, #fff);
+            transform-origin: 0 50%;
+            transform: scaleX(var(--p, 0));
+            transition: transform .1s ease;
+        }
+
+        .section {
+            margin: 16px 0 10px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+
+        .section h2 {
+            margin: 0;
+            font-size: 15px;
+            letter-spacing: .4px;
+        }
+
+        .count {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 40px 0 80px;
+        }
+
+        footer {
+            width: var(--container);
+            margin: 40px auto 80px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        dialog {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 12px;
+            width: min(780px, 92vw);
+            box-shadow: var(--shadow);
+        }
+
+        dialog::backdrop {
+            background: rgba(0, 0, 0, .35);
+            backdrop-filter: blur(2px);
+        }
+
+        .dialog-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dialog-bd {
+            padding: 14px;
+        }
+
+        textarea.code {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            padding: 10px 12px;
+            font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .sidebar-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: url('./assets/avatar.png') center/cover;
+            display: inline-block;
+        }
+
+        /* 右键菜单 */
+        .context-menu {
+            position: fixed;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 4px 0;
+            z-index: 1000;
+            min-width: 120px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text);
+            transition: background .2s ease;
+        }
+
+        .context-menu-item:hover {
+            background: color-mix(in oklab, var(--accent) 10%, transparent);
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        /* 加载状态 */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 键盘导航 */
+        .card[tabindex]:focus {
+            outline: none;
+            box-shadow: var(--focus);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .btn,
+            .card,
+            .progress {
+                transition: none;
+            }
+
+            .loading::after {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="topbar" role="banner">
+        <div class="topbar-inner">
+            <a class="brand" href="#/" aria-label="站点品牌">
+                <div class="logo" aria-hidden="true"></div>
+                <div>
+                    <div class="brand-title">优雅·简约个人站</div>
+                    <div class="muted" style="font-size:12px">导航 / 博客 / 搜索 / 标签</div>
+                </div>
+            </a>
+            <div class="actions">
+                <div class="nav-tabs" role="tablist" aria-label="主导航">
+                    <button class="nav-tab" data-section="nav" aria-pressed="true" aria-label="导航">导航</button>
+                    <button class="nav-tab" data-section="blog" aria-pressed="false" aria-label="博客">博客</button>
+                </div>
+                <button class="btn ghost" id="themeBtn" aria-label="切换主题" title="切换明/暗 (t)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3a9 9 0 100 18 9 9 0 010-18z" stroke="currentColor" stroke-width="1.5" />
+                        <path
+                            d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.535-7.535l-1.414 1.414M7.879 16.121l-1.414 1.414m0-12.728l1.414 1.414m9.242 9.242l1.414 1.414"
+                            stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                </button>
+                <button class="btn" id="accentBtn" aria-label="主题色" title="主题色">
+                    <span
+                        style="width:12px;height:12px;border-radius:999px;background:var(--accent);display:inline-block"></span>
+                    主题色
+                </button>
+                <button class="btn" id="ioBtn" aria-label="导入导出" title="导入/导出 (i)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3v12m0 0l-3-3m3 3l3-3M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    数据
+                </button>
+                <button class="btn" id="helpBtn" aria-label="帮助" title="快捷键 (?)">帮助</button>
+            </div>
+        </div>
+        <div class="progress" id="progress"></div>
+    </header>
+
+    <main class="wrap layout" id="app" role="main">
+        <div>
+            <section class="search" aria-label="搜索">
+                <svg class="iconL" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <input id="q" type="search" placeholder="搜索内容（按 / 聚焦）" autocomplete="off" aria-label="搜索输入" />
+                <button class="clear-btn" id="clearSearchBtn" title="清除搜索" aria-label="清除搜索">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="iconR kbd">/</div>
+            </section>
+
+            <!-- 导航专用控件 -->
+            <div id="navControls" style="display:none">
+                <div class="viewtabs" role="tablist" aria-label="视图" style="margin-bottom:10px">
+                    <button class="tab" data-view="all" aria-pressed="true" aria-label="全部">全部</button>
+                    <button class="tab" data-view="bycat" aria-pressed="false" aria-label="按分组">按分组</button>
+                </div>
+            </div>
+
+            <!-- 博客专用控件 -->
+            <div id="blogControls" style="display:none">
+                <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                    <button class="btn ghost" id="homeBtn">首页</button>
+                    <button class="btn ghost" id="archiveBtn">归档</button>
+                    <button class="btn ghost" id="tagsBtn">标签</button>
+                </div>
+            </div>
+
+            <nav class="tagbar" id="tagbar" aria-label="标签筛选"></nav>
+            <div id="content"></div>
+            <div class="empty" id="empty" hidden>没有匹配的结果，换个关键词或标签试试。</div>
+            <div style="display:flex;justify-content:center;margin-top:14px" id="moreWrap"></div>
+        </div>
+
+        <aside class="sidebar" aria-label="侧栏">
+            <div class="sidebar-card" style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center">
+                <div class="avatar" aria-hidden="true"></div>
+                <div>
+                    <div style="font-weight:700">你的个人站</div>
+                    <div class="muted" style="font-size:13px">导航收藏 + 博客写作，一站式个人空间。</div>
+                </div>
+            </div>
+            <div class="sidebar-card" style="margin-top:12px">
+                <div class="section" style="margin-top:0">
+                    <h2 id="sidebarTitle">标签云</h2>
+                </div>
+                <div id="sidebarContent" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+            </div>
+            <div class="sidebar-card" style="margin-top:12px">
+                <div class="section" style="margin-top:0">
+                    <h2>关于</h2>
+                </div>
+                <p class="muted" style="margin-top:6px">此站点为单文件版，可离线部署。集成导航和博客功能，所有数据保存在浏览器
+                    <code>localStorage</code>，也可导入/导出
+                    JSON。
+                </p>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <small>按 <b>/</b> 搜索 · <b>t</b> 切换主题 · <b>i</b> 导入导出 · <b>?</b> 帮助 · 支持导航收藏与博客写作。</small>
+    </footer>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="copy">复制链接</div>
+        <div class="context-menu-item" data-action="open">在新标签打开</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="edit">编辑</div>
+        <div class="context-menu-item" data-action="delete">删除</div>
+    </div> <!--
+ 导入/导出对话框 -->
+    <dialog id="ioDialog" aria-label="导入与导出">
+        <div class="dialog-hd">
+            <strong>导入 / 导出数据（JSON）</strong>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn ghost" id="exportRssBtn" style="display:none">导出 RSS</button>
+                <button class="btn ghost" id="downloadBtn">导出为文件</button>
+                <button class="btn" id="saveJsonBtn">保存更改</button>
+                <button class="btn ghost" id="closeIo">关闭</button>
+            </div>
+        </div>
+        <div class="dialog-bd">
+            <p class="muted" style="margin-top:0" id="ioHint">数据结构示例</p>
+            <textarea class="code" id="jsonArea" spellcheck="false"></textarea>
+        </div>
+    </dialog>
+
+    <!-- 帮助对话框 -->
+    <dialog id="helpDialog" aria-label="帮助与快捷键">
+        <div class="dialog-hd">
+            <strong>帮助</strong>
+            <button class="btn ghost" id="closeHelp">关闭</button>
+        </div>
+        <div class="dialog-bd">
+            <ul>
+                <li>按 <b>/</b> 聚焦搜索；支持按标题、描述、正文与标签搜索。</li>
+                <li>点击标签进行筛选，可多选；再次点击取消。</li>
+                <li>按 <b>t</b> 切换明/暗主题；点击"主题色"可换主色。</li>
+                <li>按 <b>i</b> 打开导入/导出；修改 JSON 可快速批量维护数据。</li>
+                <li><b>导航模式</b>：收藏网站链接，支持分组管理。右键卡片可复制链接。</li>
+                <li><b>博客模式</b>：写作文章，支持路由、归档、RSS 导出。</li>
+                <li><b>键盘导航</b>：Tab 键在卡片间导航，Enter 打开链接。</li>
+            </ul>
+        </div>
+    </dialog>
+
+    <!-- 主题色选择对话框 -->
+    <dialog id="accentDialog" aria-label="主题色">
+        <div class="dialog-hd">
+            <strong>选择主题色</strong>
+            <button class="btn ghost" id="closeAccent">关闭</button>
+        </div>
+        <div class="dialog-bd">
+            <div style="display:flex;flex-wrap:wrap;gap:10px">
+                <button class="btn" data-accent="#000000"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#000000;display:inline-block"></span>
+                    黑</button>
+                <button class="btn" data-accent="#6aa1ff"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#6aa1ff;display:inline-block"></span>
+                    蓝</button>
+                <button class="btn" data-accent="#22c55e"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#22c55e;display:inline-block"></span>
+                    绿</button>
+                <button class="btn" data-accent="#ef4444"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#ef4444;display:inline-block"></span>
+                    红</button>
+                <button class="btn" data-accent="#a855f7"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#a855f7;display:inline-block"></span>
+                    紫</button>
+                <button class="btn" data-accent="#f59e0b"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#f59e0b;display:inline-block"></span>
+                    橙</button>
+                <button class="btn" data-accent="#14b8a6"><span
+                        style="width:12px;height:12px;border-radius:999px;background:#14b8a6;display:inline-block"></span>
+                    青</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        // ===== 示例数据 =====
+        const DEFAULT_DATA = {
+            // 导航数据
+            collections: [
+                {
+                    name: "AI / 大模型",
+                    links: [
+                        { title: "OpenAI", url: "https://openai.com", desc: "领先的通用人工智能研究与产品。", tags: ["AI", "大模型"] },
+                        { title: "Anthropic Claude", url: "https://claude.ai", desc: "安全导向的对话式 AI。", tags: ["AI"] },
+                        { title: "Qwen", url: "https://modelscope.cn/models?q=qwen", desc: "阿里巴巴通义千问开源生态入口。", tags: ["AI", "开源"] },
+                        { title: "Hugging Face", url: "https://huggingface.co", desc: "机器学习模型与数据社区。", tags: ["AI", "开源", "社区"] },
+                    ]
+                },
+                {
+                    name: "设计 / 灵感",
+                    links: [
+                        { title: "Figma", url: "https://www.figma.com", desc: "协作式设计工具。", tags: ["设计", "UI"] },
+                        { title: "Dribbble", url: "https://dribbble.com", desc: "设计灵感社区。", tags: ["设计", "灵感"] },
+                        { title: "Behance", url: "https://www.behance.net", desc: "作品集展示平台。", tags: ["设计", "作品集"] },
+                        { title: "Muzli", url: "https://muz.li", desc: "每日灵感与趋势。", tags: ["灵感"] },
+                    ]
+                },
+                {
+                    name: "开发 / 文档",
+                    links: [
+                        { title: "GitHub", url: "https://github.com", desc: "全球最大开源托管平台。", tags: ["开发", "开源"] },
+                        { title: "MDN Web Docs", url: "https://developer.mozilla.org", desc: "Web 标准与 API 文档。", tags: ["Web", "文档"] },
+                        { title: "Vercel", url: "https://vercel.com", desc: "前端与全栈部署平台。", tags: ["部署", "前端"] },
+                        { title: "Stack Overflow", url: "https://stackoverflow.com", desc: "程序员问答社区。", tags: ["开发", "社区"] },
+                    ]
+                }
+            ],
+            // 博客数据
+            posts: [
+                {
+                    id: 1,
+                    title: "个人站点的新尝试：导航 + 博客合一",
+                    slug: "personal-site-integration",
+                    date: "2025-08-14",
+                    tags: ["设计", "前端", "个人站点"],
+                    pinned: true,
+                    content: `
+            <p>将导航和博客功能合并到一个页面，既能收藏有用的链接，又能记录思考和分享。这种设计让个人站点更加实用。</p>
+            <h2 id="why">为什么要合并</h2>
+            <ul>
+              <li>减少维护成本：一个文件搞定所有功能。</li>
+              <li>统一体验：相同的设计语言和交互模式。</li>
+              <li>数据互通：标签系统可以跨导航和博客使用。</li>
+            </ul>
+            <h2 id="features">主要功能</h2>
+            <p>导航模式支持链接收藏、分组管理、标签筛选；博客模式支持文章写作、归档浏览、RSS 导出。</p>
+            <blockquote>"简单的工具，往往最实用。"</blockquote>
+          `
+                },
+                {
+                    id: 2,
+                    title: "单文件应用的设计哲学",
+                    slug: "single-file-philosophy",
+                    date: "2025-08-13",
+                    tags: ["设计", "极简"],
+                    pinned: true,
+                    featured: true,
+                    content: `
+            <p>单文件应用强迫我们思考什么是真正必要的功能。去掉不必要的复杂性，专注核心价值。</p>
+            <h3>设计原则</h3>
+            <ol>
+              <li>功能聚焦：每个功能都要有明确价值。</li>
+              <li>数据可控：用户完全掌控自己的数据。</li>
+              <li>体验一致：统一的视觉和交互语言。</li>
+            </ol>
+          `
+                },
+                {
+                    id: 3,
+                    title: "信息层级设计：从阅读路径到点击动机",
+                    slug: "information-hierarchy-design",
+                    date: "2025-07-07",
+                    tags: ["排版", "UX"],
+                    content: `
+            <p>标题负责"抓住注意力"，摘要负责"建立预期"，标签负责"降低不确定"。</p>
+            <h2>视觉层次的构建</h2>
+            <p>通过字体大小、颜色对比、间距控制来引导用户的视线流动。每个元素都有其存在的理由。</p>
+            <h2>交互反馈</h2>
+            <p>悬停、点击、加载状态都需要给用户明确的反馈，让操作变得可预期。</p>
+          `
+                },
+                {
+                    id: 4,
+                    title: "CSS 变量系统的最佳实践",
+                    slug: "css-variables-best-practices",
+                    date: "2025-06-15",
+                    tags: ["CSS", "前端", "设计系统"],
+                    content: `
+            <p>使用 CSS 变量构建一致的设计系统，让主题切换和维护变得简单。</p>
+            <h2>命名规范</h2>
+            <p>使用语义化的命名，如 --text、--surface、--accent，而不是 --blue、--gray。</p>
+            <h2>分层管理</h2>
+            <p>基础变量定义颜色值，语义变量定义用途，组件变量定义具体应用。</p>
+          `
+                },
+                {
+                    id: 5,
+                    title: "响应式设计的渐进增强策略",
+                    slug: "responsive-progressive-enhancement",
+                    date: "2025-05-20",
+                    tags: ["响应式", "移动端", "前端"],
+                    content: `
+            <p>从移动端开始设计，逐步增强到桌面端。这种方式能确保核心功能在所有设备上都能正常工作。</p>
+            <h2>断点选择</h2>
+            <p>基于内容而不是设备来选择断点。当内容开始显得拥挤时，就是添加断点的时候。</p>
+          `
+                },
+                {
+                    id: 6,
+                    title: "JavaScript 模块化的演进历程",
+                    slug: "javascript-modules-evolution",
+                    date: "2025-04-10",
+                    tags: ["JavaScript", "模块化", "前端"],
+                    content: `
+            <p>从全局变量到 CommonJS，从 AMD 到 ES6 模块，JavaScript 的模块化方案不断演进。</p>
+            <h2>现代模块系统</h2>
+            <p>ES6 模块提供了静态分析、树摇优化等优势，成为了现代前端开发的标准。</p>
+          `
+                },
+                {
+                    id: 7,
+                    title: "Web 性能优化的系统性思考",
+                    slug: "web-performance-optimization",
+                    date: "2025-03-25",
+                    tags: ["性能优化", "前端", "用户体验"],
+                    content: `
+            <p>性能优化不仅仅是技术问题，更是用户体验问题。需要从用户感知的角度来思考优化策略。</p>
+            <h2>关键渲染路径</h2>
+            <p>理解浏览器如何解析和渲染页面，找到性能瓶颈的根本原因。</p>
+          `
+                },
+                {
+                    id: 8,
+                    title: "设计系统的构建与维护",
+                    slug: "design-system-building",
+                    date: "2025-02-14",
+                    tags: ["设计系统", "组件化", "团队协作"],
+                    content: `
+            <p>设计系统不仅仅是组件库，更是团队协作的语言。它需要在一致性和灵活性之间找到平衡。</p>
+            <h2>组件设计原则</h2>
+            <p>每个组件都应该有明确的职责，可组合，可扩展，易于理解和使用。</p>
+          `
+                }
+            ]
+        };
+
+        // ===== 状态与持久化 =====
+        const STORAGE_KEY = 'personal.site.v1';
+        const THEME_KEY = 'personal.theme';
+        const ACCENT_KEY = 'personal.accent';
+
+        const state = {
+            data: loadData(),
+            section: 'nav', // 'nav' | 'blog'
+            view: 'all', // 导航视图：'all' | 'bycat'
+            q: '',
+            tags: new Set(),
+            pageSize: 8,
+            page: 1,
+            currentCard: null, // 当前右键点击的卡片
+            focusedCardIndex: -1, // 键盘导航焦点
+        };
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return structuredClone(DEFAULT_DATA);
+                const parsed = JSON.parse(raw);
+                // 确保数据结构完整
+                if (!parsed.collections) parsed.collections = [];
+                if (!parsed.posts) parsed.posts = [];
+                return parsed;
+            } catch (e) {
+                console.warn('数据解析失败，已回退默认数据', e);
+                return structuredClone(DEFAULT_DATA);
+            }
+        }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); }
+
+        // ===== 主题与主题色 =====
+        initTheme();
+        function initTheme() {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            const savedAccent = localStorage.getItem(ACCENT_KEY);
+            if (savedAccent) document.documentElement.style.setProperty('--accent', savedAccent);
+        }
+        function toggleTheme() {
+            const cur = document.documentElement.getAttribute('data-theme');
+            const next = cur === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem(THEME_KEY, next);
+        }
+
+        // ===== 工具函数 =====
+        const $ = (sel, el = document) => el.querySelector(sel);
+        const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
+        const escapeHTML = (s = '') => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+        const debounce = (fn, d = 150) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); } };
+        const stripHTML = (html = '') => html.replace(/<[^>]*>/g, '');
+        const fmtDate = (d) => new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        function slugify(s) { return s.toLowerCase().trim().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+        // ===== 标签聚合 =====
+        function collectNavTags() {
+            const m = new Map();
+            for (const g of state.data.collections) {
+                for (const l of g.links) {
+                    (l.tags || []).forEach(t => m.set(t, (m.get(t) || 0) + 1));
+                }
+            }
+            return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hans-CN'));
+        }
+
+        function collectBlogTags() {
+            const m = new Map();
+            for (const p of state.data.posts) { (p.tags || []).forEach(t => m.set(t, (m.get(t) || 0) + 1)); }
+            return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hans-CN'));
+        }
+
+        function renderTagsBar() {
+            const bar = $('#tagbar');
+            const items = state.section === 'nav' ? collectNavTags() : collectBlogTags();
+
+            // 构建标签按钮
+            let tagsHTML = items.map(([tag, count]) => `
+                <button class="chip" data-tag="${escapeHTML(tag)}" data-active="${state.tags.has(tag)}" aria-pressed="${state.tags.has(tag)}">
+                    #${escapeHTML(tag)} <span class="muted" style="margin-left:6px">${count}</span>
+                </button>
+            `).join('');
+
+            // 如果有选中的标签，添加清除按钮
+            if (state.tags.size > 0) {
+                tagsHTML = `
+                    <button class="btn ghost" id="clearTagsBtn" style="height:34px;padding:0 12px;margin-right:8px;" title="清除所有筛选">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        清除筛选
+                    </button>
+                ` + tagsHTML;
+            }
+
+            bar.innerHTML = tagsHTML;
+
+            // 绑定标签点击事件
+            $$('#tagbar .chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const t = btn.dataset.tag;
+                    if (state.tags.has(t)) state.tags.delete(t); else state.tags.add(t);
+                    renderTagsBar(); // 重新渲染标签条以更新清除按钮状态
+                    renderContent(); renderSidebar();
+                });
+            });
+
+            // 绑定清除按钮事件
+            const clearBtn = $('#clearTagsBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    state.tags.clear();
+                    renderContent(); renderSidebar();
+                });
+            }
+        }
+
+        function renderSidebar() {
+            const sidebarTitle = $('#sidebarTitle');
+            const sidebarContent = $('#sidebarContent');
+
+            if (state.section === 'nav') {
+                sidebarTitle.textContent = '标签云';
+                const items = collectNavTags();
+                sidebarContent.innerHTML = items.map(([t, c]) => {
+                    const scale = Math.min(1.6, 1 + Math.log(1 + c) / 3);
+                    return `<span style="font-size:${(12 * scale).toFixed(1)}px" class="t">#${escapeHTML(t)}<sup class="muted" style="margin-left:4px">${c}</sup></span>`;
+                }).join(' ');
+            } else {
+                sidebarTitle.textContent = '标签云';
+                const items = collectBlogTags();
+                const maxTags = 8; // 最多显示8个标签
+                const visibleItems = items.slice(0, maxTags);
+                const hiddenItems = items.slice(maxTags);
+
+                let tagsHTML = visibleItems.map(([t, c]) => {
+                    const scale = Math.min(1.6, 1 + Math.log(1 + c) / 3);
+                    const isActive = state.tags.has(t);
+                    return `<button style="font-size:${(12 * scale).toFixed(1)}px" class="t sidebar-tag-filter ${isActive ? 'active' : ''}" data-tag="${escapeHTML(t)}">#${escapeHTML(t)}<sup class="muted" style="margin-left:4px">${c}</sup></button>`;
+                }).join(' ');
+
+                if (hiddenItems.length > 0) {
+                    tagsHTML += ` <button class="t expand-sidebar-tags" style="margin-left: 8px;">展开 +${hiddenItems.length}</button>`;
+                }
+
+                sidebarContent.innerHTML = tagsHTML;
+
+                // 绑定侧边栏标签点击事件
+                $$('.sidebar-tag-filter').forEach(tagBtn => {
+                    tagBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tag = tagBtn.dataset.tag;
+
+                        // 切换标签筛选状态
+                        if (state.tags.has(tag)) {
+                            state.tags.delete(tag);
+                        } else {
+                            state.tags.add(tag);
+                        }
+
+                        // 重新渲染
+                        renderTagsBar();
+                        renderContent();
+                        renderSidebar();
+                    });
+                });
+
+                // 绑定展开按钮事件
+                const expandBtn = $('.expand-sidebar-tags');
+                if (expandBtn) {
+                    expandBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+
+                        // 显示所有标签
+                        const allTagsHTML = items.map(([t, c]) => {
+                            const scale = Math.min(1.6, 1 + Math.log(1 + c) / 3);
+                            const isActive = state.tags.has(t);
+                            return `<button style="font-size:${(12 * scale).toFixed(1)}px" class="t sidebar-tag-filter ${isActive ? 'active' : ''}" data-tag="${escapeHTML(t)}">#${escapeHTML(t)}<sup class="muted" style="margin-left:4px">${c}</sup></button>`;
+                        }).join(' ') + ` <button class="t collapse-sidebar-tags" style="margin-left: 8px;">收起</button>`;
+
+                        sidebarContent.innerHTML = allTagsHTML;
+
+                        // 重新绑定事件
+                        $$('.sidebar-tag-filter').forEach(tagBtn => {
+                            tagBtn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                const tag = tagBtn.dataset.tag;
+                                if (state.tags.has(tag)) {
+                                    state.tags.delete(tag);
+                                } else {
+                                    state.tags.add(tag);
+                                }
+                                renderTagsBar();
+                                renderContent();
+                                renderSidebar();
+                            });
+                        });
+
+                        // 绑定收起按钮
+                        const collapseBtn = $('.collapse-sidebar-tags');
+                        if (collapseBtn) {
+                            collapseBtn.addEventListener('click', () => {
+                                renderSidebar(); // 重新渲染回收起状态
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        // ===== 导航功能 =====
+        function matchLink(link) {
+            const q = state.q.trim().toLowerCase();
+            const byQ = !q || (
+                (link.title || '').toLowerCase().includes(q) ||
+                (link.desc || '').toLowerCase().includes(q) ||
+                (link.url || '').toLowerCase().includes(q) ||
+                (link.tags || []).some(t => t.toLowerCase().includes(q))
+            );
+            const byTags = state.tags.size === 0 || (link.tags || []).some(t => state.tags.has(t));
+            return byQ && byTags;
+        }
+
+        function renderNavigation() {
+            const root = $('#content');
+            const view = state.view;
+
+            if (view === 'all') {
+                const allLinks = state.data.collections.flatMap(g => g.links.map(l => ({ ...l, group: g.name })));
+                const filtered = allLinks.filter(matchLink);
+                root.innerHTML = `
+          <div class="section"><h2>全部链接</h2><div class="count">${filtered.length} 个</div></div>
+          <div class="grid nav-grid">${filtered.map(renderNavCard).join('')}</div>
+        `;
+                $('#empty').hidden = filtered.length > 0;
+            } else {
+                const html = state.data.collections.map(group => {
+                    const items = group.links.filter(matchLink);
+                    if (items.length === 0) return '';
+                    return `
+            <section>
+              <div class="section"><h2>${escapeHTML(group.name)}</h2><div class="count">${items.length} 个</div></div>
+              <div class="grid nav-grid">${items.map(renderNavCard).join('')}</div>
+            </section>
+          `;
+                }).join('');
+                root.innerHTML = html || '';
+                $('#empty').hidden = !!html;
+            }
+
+            // 绑定卡片事件
+            bindCardEvents();
+        }
+
+        function renderNavCard(link, index) {
+            const { title, url, desc, tags = [] } = link;
+            const u = new URL(url);
+            const favicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(u.origin)}&sz=64`;
+            return `
+        <article class="card nav-card" role="article" tabindex="0" data-url="${escapeHTML(url)}" data-title="${escapeHTML(title)}" data-index="${index || 0}">
+          <button class="open" data-url="${escapeHTML(url)}" aria-label="在新标签打开">↗</button>
+          <div class="row">
+            <img class="favicon" src="${favicon}" alt="${escapeHTML(u.hostname)} favicon" loading="lazy" onerror="this.classList.add('error')" />
+            <h3 title="${escapeHTML(url)}">${escapeHTML(title)}</h3>
+          </div>
+          <div class="desc">${escapeHTML(desc || '')}</div>
+          <div class="tags">${tags.map(t => `<span class="t">#${escapeHTML(t)}</span>`).join('')}</div>
+        </article>
+      `;
+        }
+
+        // ===== 博客功能 =====
+        function matchPost(p) {
+            const q = state.q.trim().toLowerCase();
+            const byQ = !q || (
+                (p.title || '').toLowerCase().includes(q) ||
+                stripHTML(p.content || '').toLowerCase().includes(q) ||
+                (p.tags || []).some(t => t.toLowerCase().includes(q))
+            );
+            const byTags = state.tags.size === 0 || (p.tags || []).some(t => state.tags.has(t));
+            return byQ && byTags;
+        }
+
+        function sortedPosts() {
+            return [...state.data.posts]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+        }
+
+        function renderBlogList() {
+            const root = $('#content');
+            const allPosts = sortedPosts();
+            const posts = allPosts.filter(matchPost);
+            const total = posts.length;
+
+            if (total === 0) {
+                root.innerHTML = `<div class="section"><h2>最新文章</h2><div class="count">0 篇</div></div>`;
+                $('#empty').hidden = false;
+                $('#moreWrap').innerHTML = '';
+                return;
+            }
+
+            // 确定真正的精选文章（基于featured属性）
+            const trueFeaturedPost = allPosts.find(p => p.featured === true);
+            // 检查精选文章是否匹配筛选条件
+            const featuredMatchesFilter = trueFeaturedPost ? matchPost(trueFeaturedPost) : false;
+            // 普通文章就是筛选结果中除了精选文章之外的所有文章
+            const regularPosts = trueFeaturedPost ? posts.filter(p => p !== trueFeaturedPost) : posts;
+
+            // 计算分页
+            const postsPerPage = 6;
+            const totalPages = Math.ceil(regularPosts.length / postsPerPage);
+            const currentPage = Math.max(1, Math.min(state.page, totalPages));
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const currentPagePosts = regularPosts.slice(startIndex, endIndex);
+
+            // 渲染内容
+            let cardsHTML = '';
+            let cardIndex = 0; // 用于跟踪卡片的实际渲染顺序
+
+            // 只有当精选文章匹配筛选条件时才显示
+            if (featuredMatchesFilter) {
+                cardsHTML += renderBlogCard(trueFeaturedPost, 0); // 精选文章始终使用index 0
+                cardIndex = 1; // 下一个卡片从index 1开始
+            }
+
+            // 显示当前页的普通文章，使用连续的index确保它们不会被当作精选文章
+            currentPagePosts.forEach((post, index) => {
+                cardsHTML += renderBlogCard(post, cardIndex + index);
+            });
+
+            root.innerHTML = `
+                <div class="section">
+                    <h2>最新文章</h2>
+                    <div class="count">${total} 篇</div>
+                </div>
+                <div class="grid">${cardsHTML}</div>
+            `;
+
+            $('#empty').hidden = true;
+
+            // 渲染分页控件
+            renderPagination(currentPage, totalPages, regularPosts.length);
+
+            // 绑定卡片事件
+            bindCardEvents();
+        }
+
+        function renderPagination(currentPage, totalPages, regularPostsCount) {
+            const moreWrap = $('#moreWrap');
+
+            if (totalPages <= 1) {
+                moreWrap.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '<div class="pagination-wrapper">';
+            paginationHTML += '<div class="pagination">';
+
+            // 上一页按钮
+            if (currentPage > 1) {
+                paginationHTML += `<button class="btn ghost pagination-btn" data-page="${currentPage - 1}">上一页</button>`;
+            }
+
+            // 页码按钮
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="btn pagination-btn active" data-page="${i}">${i}</button>`;
+                } else if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                    paginationHTML += `<button class="btn ghost pagination-btn" data-page="${i}">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    paginationHTML += '<span class="pagination-ellipsis">...</span>';
+                }
+            }
+
+            // 下一页按钮
+            if (currentPage < totalPages) {
+                paginationHTML += `<button class="btn ghost pagination-btn" data-page="${currentPage + 1}">下一页</button>`;
+            }
+
+            paginationHTML += '</div>';
+
+            // 添加页面信息
+            paginationHTML += `<div class="pagination-info">第 ${currentPage} 页，共 ${totalPages} 页 · ${regularPostsCount} 篇文章</div>`;
+            paginationHTML += '</div>';
+
+            moreWrap.innerHTML = paginationHTML;
+
+            // 绑定分页按钮事件
+            $$('.pagination-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const page = parseInt(btn.dataset.page);
+                    if (page && page !== currentPage) {
+                        state.page = page;
+                        renderBlogList();
+                        // 滚动到顶部
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            });
+        }
+
+        function renderBlogCard(p, index) {
+            const tags = p.tags || [];
+            const maxTags = 3;
+            const visibleTags = tags.slice(0, maxTags);
+            const hiddenTags = tags.slice(maxTags);
+            const readTime = Math.max(1, Math.ceil(stripHTML(p.content).length / 500));
+            const excerpt = stripHTML(p.content).slice(0, 120) + (stripHTML(p.content).length > 120 ? '…' : '');
+            // 基于文章标题生成固定的浏览次数，避免每次刷新都变化
+            const viewCount = Math.floor((p.title.length * 137 + p.date.length * 73) % 1500) + 500;
+
+            let tagsHTML = visibleTags.map(t =>
+                `<a class="tag" href="#" data-tag="${escapeHTML(t)}">#${escapeHTML(t)}</a>`
+            ).join('');
+
+            if (hiddenTags.length > 0) {
+                tagsHTML += `<button class="blog-tag expand-tags" data-card-index="${index}">+${hiddenTags.length}</button>`;
+            }
+
+            const date = new Date(p.date);
+            const dayNum = date.getDate().toString().padStart(2, '0');
+            const monthShort = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+            // 判断是否为精选文章（只基于featured属性，不依赖位置）
+            const isFeatured = p.featured === true;
+
+            if (isFeatured) {
+                // Featured 横卡：跨两列、带封面
+                return `
+                    <article class="post post--featured" role="article" data-url="#/post/${encodeURIComponent(p.slug)}" data-title="${escapeHTML(p.title)}" data-index="${index}">
+                        <div class="cover">
+                            <div class="cover-placeholder">精选</div>
+                            <span class="cap">精选</span>
+                        </div>
+                        <div class="content">
+                            <h2 class="title"><a href="#/post/${encodeURIComponent(p.slug)}">${escapeHTML(p.title)}</a></h2>
+                            <div class="meta">
+                                <time datetime="${p.date}">${fmtDate(p.date)}</time>
+                                <span>${readTime} 分钟读完</span>
+                                <span>${viewCount.toLocaleString()} 次浏览</span>
+                            </div>
+                            ${excerpt ? `<p class="excerpt">${escapeHTML(excerpt)}</p>` : ''}
+                            ${tags.length > 0 ? `<div class="tags" data-all-tags='${JSON.stringify(tags)}'>${tagsHTML}</div>` : ''}
+                            <div class="foot">
+                                <a class="btn" href="#/post/${encodeURIComponent(p.slug)}">
+                                    阅读全文
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7" stroke-width="1.8"/></svg>
+                                </a>
+                            </div>
+                            <a class="stretched" href="#/post/${encodeURIComponent(p.slug)}" aria-label="阅读全文：${escapeHTML(p.title)}"></a>
+                        </div>
+                    </article>
+                `;
+            } else {
+                // Rail 卡：左侧日期导轨，更紧凑的设计
+                return `
+                    <article class="post post--rail" role="article" data-url="#/post/${encodeURIComponent(p.slug)}" data-title="${escapeHTML(p.title)}" data-index="${index}">
+                        <aside class="rail">
+                            ${p.pinned ? '<span class="pin">置顶</span>' : ''}
+                            <div class="day">${dayNum}</div>
+                            <div class="month">${monthShort}</div>
+                        </aside>
+                        <div class="content">
+                            <h2 class="title"><a href="#/post/${encodeURIComponent(p.slug)}">${escapeHTML(p.title)}</a></h2>
+                            ${tags.length > 0 ? `<div class="tags" data-all-tags='${JSON.stringify(tags)}'>${tagsHTML}</div>` : ''}
+                            <div class="foot">
+                                <a class="btn" href="#/post/${encodeURIComponent(p.slug)}">
+                                    阅读全文
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 5l7 7-7 7" stroke-width="1.8"/></svg>
+                                </a>
+                                <span class="read-time">${readTime} 分钟读完</span>
+                            </div>
+                            <a class="stretched" href="#/post/${encodeURIComponent(p.slug)}" aria-label="阅读全文：${escapeHTML(p.title)}"></a>
+                        </div>
+                    </article>
+                `;
+            }
+        }
+
+        function renderPost(slug) {
+            const p = state.data.posts.find(x => x.slug === slug);
+            const root = $('#content');
+            if (!p) { root.innerHTML = `<div class="empty">未找到文章。</div>`; return; }
+
+            const idx = sortedPosts().findIndex(x => x.slug === slug);
+            const prev = sortedPosts()[idx - 1];
+            const next = sortedPosts()[idx + 1];
+
+            root.innerHTML = `
+        <article class="article" role="article">
+          <div class="article-hd">
+            <h1>${escapeHTML(p.title)}</h1>
+            <div class="meta">
+              <span>${fmtDate(p.date)}</span>
+              <div class="tags">${(p.tags || []).map(t => `<a class="t" href="#/tags/${encodeURIComponent(t)}">#${escapeHTML(t)}</a>`).join('')}</div>
+            </div>
+          </div>
+          <div class="article-bd">
+            <div class="article-content" id="articleContent">${p.content}</div>
+            <aside class="article-aside">
+              <div class="toc" id="toc"></div>
+              <div style="margin-top:14px">
+                <a class="btn ghost" href="#/">返回首页</a>
+              </div>
+            </aside>
+          </div>
+        </article>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap">
+          <div>${prev ? `<a class="btn ghost" href="#/post/${encodeURIComponent(prev.slug)}">← 上一篇</a>` : ''}</div>
+          <div>${next ? `<a class="btn ghost" href="#/post/${encodeURIComponent(next.slug)}">下一篇 →</a>` : ''}</div>
+        </div>
+      `;
+
+            buildTOC();
+            enhanceCodeBlocks();
+            updateProgress();
+            window.addEventListener('scroll', updateProgress, { passive: true });
+        }
+
+        function buildTOC() {
+            const article = $('#articleContent');
+            const toc = $('#toc');
+            const hs = $$('h2, h3', article);
+            if (!hs.length) { toc.innerHTML = ''; return; }
+
+            toc.innerHTML = `<h4>目录</h4>` + hs.map(h => {
+                if (!h.id) h.id = slugify(h.textContent);
+                const isH3 = h.tagName.toLowerCase() === 'h3';
+                const indent = isH3 ? ' style="padding-left: 20px; font-size: 12px;"' : '';
+                return `<a href="javascript:void(0)" data-id="${h.id}" class="toc-link"${indent}>${escapeHTML(h.textContent)}</a>`;
+            }).join('');
+
+            // 绑定目录点击事件
+            const links = $$('.toc-link', toc);
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.dataset.id;
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        // 平滑滚动到目标位置
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                            inline: 'nearest'
+                        });
+
+                        // 更新 URL hash，但不触发路由变化
+                        const currentUrl = new URL(window.location);
+                        currentUrl.hash = currentUrl.hash.split('#')[0] + '#' + targetId;
+                        window.history.replaceState(null, '', currentUrl);
+                    }
+                });
+            });
+
+            // 监听滚动，高亮当前章节
+            const io = new IntersectionObserver(entries => {
+                const visibleEntries = entries.filter(e => e.isIntersecting);
+                if (visibleEntries.length > 0) {
+                    // 取第一个可见的标题
+                    const firstVisible = visibleEntries[0];
+                    const id = firstVisible.target.id;
+                    links.forEach(a => {
+                        a.setAttribute('aria-current', a.dataset.id === id ? 'true' : 'false');
+                    });
+                }
+            }, {
+                rootMargin: '-20% 0px -70% 0px',
+                threshold: [0, 0.1, 0.5, 1]
+            });
+
+            hs.forEach(h => io.observe(h));
+        }
+
+        function enhanceCodeBlocks() {
+            $$('#articleContent pre').forEach(pre => {
+                if (pre.querySelector('button.copy')) return;
+                const btn = document.createElement('button');
+                btn.textContent = '复制代码';
+                btn.className = 'btn ghost copy';
+                btn.style.cssText = 'position:absolute; right:10px; margin-top:6px';
+                const wrap = document.createElement('div');
+                wrap.style.position = 'relative';
+                pre.parentNode.insertBefore(wrap, pre);
+                wrap.appendChild(btn); wrap.appendChild(pre);
+                btn.onclick = () => {
+                    navigator.clipboard.writeText(pre.innerText).then(() => {
+                        btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制代码', 1200);
+                    });
+                };
+            });
+        }
+
+        function updateProgress() {
+            const art = $('#articleContent');
+            const bar = $('#progress');
+            if (!art || !bar) return;
+            const rect = art.getBoundingClientRect();
+            const total = art.scrollHeight - window.innerHeight;
+            const scrolled = Math.min(Math.max(window.scrollY - art.offsetTop, 0), total);
+            const p = total > 0 ? scrolled / total : 0;
+            bar.style.setProperty('--p', p);
+        }
+
+        function renderArchive() {
+            const root = $('#content');
+            const posts = sortedPosts();
+            const byYear = new Map();
+            const byMonth = new Map();
+
+            // 按年份和月份分组
+            posts.forEach(p => {
+                const date = new Date(p.date);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
+
+                if (!byYear.has(year)) byYear.set(year, []);
+                byYear.get(year).push(p);
+
+                if (!byMonth.has(yearMonth)) byMonth.set(yearMonth, []);
+                byMonth.get(yearMonth).push(p);
+            });
+
+            // 生成统计信息
+            const totalPosts = posts.length;
+            const yearCount = byYear.size;
+            const monthCount = byMonth.size;
+
+            // 生成年份表格 - Ledger 风格
+            const timelineHTML = [...byYear.entries()].sort((a, b) => b[0] - a[0]).map(([year, yearPosts]) => {
+                const monthsInYear = new Map();
+                yearPosts.forEach(p => {
+                    const month = new Date(p.date).getMonth() + 1;
+                    if (!monthsInYear.has(month)) monthsInYear.set(month, []);
+                    monthsInYear.get(month).push(p);
+                });
+
+                // 生成表格行
+                const rowsHTML = yearPosts.map(p => {
+                    const date = new Date(p.date);
+                    const day = date.getDate();
+                    const tagsHTML = (p.tags && p.tags.length > 0)
+                        ? p.tags.slice(0, 3).map(t => `<a class="archive-tag-ghost" href="#/tag/${encodeURIComponent(t)}">#${escapeHTML(t)}</a>`).join('')
+                        : '';
+
+                    return `
+                        <div class="archive-row" role="row">
+                            <div class="archive-col-day" role="cell">${day}</div>
+                            <div class="archive-col-title" role="cell">
+                                <a href="#/post/${encodeURIComponent(p.slug)}">${escapeHTML(p.title)}</a>
+                                ${p.pinned ? '<span class="small">（置顶）</span>' : ''}
+                            </div>
+                            <div class="archive-col-tags" role="cell">
+                                ${tagsHTML}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="archive-year">
+                        <div class="archive-year-header" role="group" aria-label="年份 ${year}">
+                            <span class="archive-year-dot" aria-hidden="true"></span>
+                            <h3>${year}</h3>
+                            <div class="archive-year-stats">
+                                <span class="archive-badge">${yearPosts.length} 篇</span>
+                                <span class="archive-badge">${monthsInYear.size} 个月</span>
+                            </div>
+                        </div>
+                        <div class="archive-table" role="table" aria-label="${year} 年文章列表">
+                            ${rowsHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            root.innerHTML = `
+                <div class="archive-header">
+                    <div class="archive-title">
+                        <h2>文章归档</h2>
+                        <div class="archive-summary">
+                            <span>共 ${totalPosts} 篇文章</span>
+                            <span>·</span>
+                            <span>${yearCount} 年</span>
+                            <span>·</span>
+                            <span>${monthCount} 个月</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="archive-timeline">
+                    ${timelineHTML}
+                </div>
+            `;
+        }
+
+        function renderTagPage(tag) {
+            state.tags = new Set([tag]);
+            renderTagsBar();
+            renderBlogList();
+        }
+
+        // ===== 用户体验增强 =====
+
+        // 键盘导航
+        function bindCardEvents() {
+            const cards = $$('.card[tabindex]');
+            cards.forEach((card, index) => {
+                // 点击事件
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.open, .btn, .t, a')) return;
+                    const url = card.dataset.url;
+                    if (url) {
+                        if (url.startsWith('#')) {
+                            location.hash = url;
+                        } else {
+                            window.open(url, '_blank', 'noopener');
+                        }
+                    }
+                });
+
+                // 键盘事件
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        card.click();
+                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const next = cards[index + 1];
+                        if (next) next.focus();
+                    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const prev = cards[index - 1];
+                        if (prev) prev.focus();
+                    }
+                });
+
+                // 右键菜单（仅导航模式）
+                if (state.section === 'nav') {
+                    card.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        state.currentCard = card;
+                        showContextMenu(e.clientX, e.clientY);
+                    });
+                }
+            });
+
+            // 绑定打开按钮事件
+            $$('.open').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const url = btn.getAttribute('data-url');
+                    window.open(url, '_blank', 'noopener');
+                    e.stopPropagation();
+                });
+            });
+
+            // 绑定博客卡片内标签筛选事件
+            $$('.tag-filter, .tag').forEach(tagBtn => {
+                tagBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tag = tagBtn.dataset.tag;
+
+                    // 切换标签筛选状态
+                    if (state.tags.has(tag)) {
+                        state.tags.delete(tag);
+                    } else {
+                        state.tags.add(tag);
+                    }
+
+                    // 重新渲染
+                    renderTagsBar();
+                    renderContent();
+                    renderSidebar();
+                });
+            });
+
+            // 绑定"阅读全文"按钮事件
+            $$('.blog-read-more').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = btn.dataset.url;
+                    if (url) {
+                        location.hash = url;
+                    }
+                });
+            });
+
+            // 绑定标签展开按钮事件
+            $$('.expand-tags').forEach(expandBtn => {
+                expandBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const tagsContainer = expandBtn.parentElement;
+                    const allTags = JSON.parse(tagsContainer.dataset.allTags);
+
+                    // 重新渲染所有标签
+                    const allTagsHTML = allTags.map(t =>
+                        `<button class="t tag-filter ${state.tags.has(t) ? 'active' : ''}" data-tag="${escapeHTML(t)}">#${escapeHTML(t)}</button>`
+                    ).join('') + `<button class="t collapse-tags">收起</button>`;
+
+                    tagsContainer.innerHTML = allTagsHTML;
+
+                    // 重新绑定新生成的标签按钮事件
+                    tagsContainer.querySelectorAll('.tag-filter').forEach(tagBtn => {
+                        tagBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const tag = tagBtn.dataset.tag;
+
+                            if (state.tags.has(tag)) {
+                                state.tags.delete(tag);
+                            } else {
+                                state.tags.add(tag);
+                            }
+
+                            renderTagsBar();
+                            renderContent();
+                            renderSidebar();
+                        });
+                    });
+
+                    // 绑定收起按钮事件
+                    const collapseBtn = tagsContainer.querySelector('.collapse-tags');
+                    if (collapseBtn) {
+                        collapseBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            // 重新渲染为折叠状态
+                            renderContent();
+                        });
+                    }
+                });
+            });
+        }
+
+        // 右键菜单
+        function showContextMenu(x, y) {
+            const menu = $('#contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+
+            // 确保菜单不超出视窗
+            const rect = menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                menu.style.left = `${x - rect.width}px`;
+            }
+            if (rect.bottom > window.innerHeight) {
+                menu.style.top = `${y - rect.height}px`;
+            }
+        }
+
+        function hideContextMenu() {
+            $('#contextMenu').style.display = 'none';
+            state.currentCard = null;
+        }
+
+        // 右键菜单事件
+        $$('.context-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                const card = state.currentCard;
+                if (!card) return;
+
+                const url = card.dataset.url;
+                const title = card.dataset.title;
+
+                switch (action) {
+                    case 'copy':
+                        navigator.clipboard.writeText(url).then(() => {
+                            // 可以添加提示
+                            console.log('链接已复制');
+                        });
+                        break;
+                    case 'open':
+                        window.open(url, '_blank', 'noopener');
+                        break;
+                    case 'edit':
+                        // 这里可以添加编辑功能
+                        console.log('编辑功能待实现');
+                        break;
+                    case 'delete':
+                        // 这里可以添加删除功能
+                        console.log('删除功能待实现');
+                        break;
+                }
+                hideContextMenu();
+            });
+        });
+
+        // 点击其他地方隐藏右键菜单
+        document.addEventListener('click', hideContextMenu);
+        document.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.card')) {
+                hideContextMenu();
+            }
+        });
+
+        // ===== 主渲染函数 =====
+        function renderContent() {
+            renderTagsBar();
+            $('#moreWrap').innerHTML = '';
+            state.focusedCardIndex = -1;
+
+            if (state.section === 'nav') {
+                renderNavigation();
+            } else {
+                // 检查是否是特殊路由
+                const hash = location.hash || '#/';
+                const seg = hash.slice(2).split('/');
+                const page = seg[0];
+
+                if (page === 'post') {
+                    renderPost(decodeURIComponent(seg[1] || ''));
+                } else if (page === 'archive') {
+                    renderArchive();
+                } else if (page === 'tags') {
+                    const t = decodeURIComponent(seg[1] || '');
+                    if (t) renderTagPage(t); else { state.tags.clear(); renderBlogList(); }
+                } else {
+                    state.page = 1;
+                    renderBlogList();
+                }
+            }
+        }
+
+        // ===== 界面切换 =====
+        function switchSection(section, keepState = false) {
+            state.section = section;
+
+            // 如果不保持状态，则重置搜索和筛选
+            if (!keepState) {
+                state.q = '';
+                state.tags.clear();
+                state.page = 1;
+                $('#q').value = '';
+            }
+
+            // 更新导航标签状态
+            $$('.nav-tab').forEach(tab => {
+                tab.setAttribute('aria-pressed', String(tab.dataset.section === section));
+            });
+
+            // 显示/隐藏对应控件
+            $('#navControls').style.display = section === 'nav' ? 'block' : 'none';
+            $('#blogControls').style.display = section === 'blog' ? 'block' : 'none';
+
+            // 更新搜索框提示
+            $('#q').placeholder = section === 'nav' ? '搜索网站、描述或标签（按 / 聚焦）' : '搜索标题、正文或标签（按 / 聚焦）';
+
+            // 更新RSS按钮显示
+            $('#exportRssBtn').style.display = section === 'blog' ? 'inline-flex' : 'none';
+
+            renderContent();
+            renderSidebar();
+        }
+
+        // ===== 事件绑定 =====
+        const qInput = $('#q');
+        const clearSearchBtn = $('#clearSearchBtn');
+
+        // 更新清除按钮的显示状态
+        function updateClearButton() {
+            if (qInput.value.trim()) {
+                clearSearchBtn.classList.add('show');
+            } else {
+                clearSearchBtn.classList.remove('show');
+            }
+        }
+
+        qInput.addEventListener('input', debounce(() => {
+            state.q = qInput.value;
+            state.page = 1;
+            updateClearButton();
+            renderContent();
+        }, 120));
+
+        // 清除搜索按钮事件
+        clearSearchBtn.addEventListener('click', () => {
+            qInput.value = '';
+            state.q = '';
+            state.page = 1;
+            updateClearButton();
+            renderContent();
+            qInput.focus();
+        });
+
+        // 初始化清除按钮状态
+        updateClearButton();
+
+        document.addEventListener('keydown', (e) => {
+            // 检查是否在输入框中或对话框中
+            const isInInput = document.activeElement.tagName === 'INPUT' ||
+                document.activeElement.tagName === 'TEXTAREA' ||
+                document.activeElement.contentEditable === 'true';
+            const isInDialog = document.activeElement.closest('dialog');
+
+            // 如果在输入框或对话框中，只处理 Escape 键
+            if (isInInput || isInDialog) {
+                if (e.key === 'Escape') {
+                    hideContextMenu();
+
+                    // 如果在对话框中，关闭对话框
+                    if (isInDialog) {
+                        const dialog = document.activeElement.closest('dialog');
+                        if (dialog) {
+                            closeDialog(dialog);
+                        }
+                    }
+
+                    // 如果在搜索框中按 Escape，先清除内容，再失去焦点
+                    if (document.activeElement === qInput) {
+                        if (qInput.value.trim()) {
+                            // 如果有搜索内容，先清除
+                            qInput.value = '';
+                            state.q = '';
+                            state.page = 1;
+                            updateClearButton();
+                            renderContent();
+                        } else {
+                            // 如果没有搜索内容，失去焦点
+                            qInput.blur();
+                        }
+                    }
+                }
+                return;
+            }
+
+            // 全局快捷键
+            if (e.key === '/' && document.activeElement !== qInput) {
+                e.preventDefault();
+                qInput.focus();
+            }
+            if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                toggleTheme();
+            }
+            if (e.key.toLowerCase() === 'i' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                openIo();
+            }
+            if (e.key === '?' || (e.shiftKey && e.key.toLowerCase() === '/')) {
+                e.preventDefault();
+                openHelp();
+            }
+            if (e.key === 'Escape') {
+                hideContextMenu();
+            }
+        });
+
+        // 主导航切换
+        $$('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const section = tab.dataset.section;
+                switchSection(section);
+                // 保存当前模式状态
+                localStorage.setItem('current.section', section);
+                // 重置路由到首页
+                if (section === 'blog') {
+                    location.hash = '#/';
+                }
+            });
+        });
+
+        // 导航视图切换
+        $$('.tab').forEach(b => {
+            b.addEventListener('click', () => {
+                state.view = b.dataset.view;
+                $$('.tab').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+                renderContent();
+            });
+        });
+
+        // 博客页面按钮
+        $('#homeBtn').onclick = () => location.hash = '#/';
+        $('#archiveBtn').onclick = () => location.hash = '#/archive';
+        $('#tagsBtn').onclick = () => location.hash = '#/tags';
+
+        // 主题按钮
+        $('#themeBtn').addEventListener('click', toggleTheme);
+
+        // 主题色选择
+        const accentDialog = $('#accentDialog');
+        $('#accentBtn').addEventListener('click', () => openDialog(accentDialog));
+        $('#closeAccent').addEventListener('click', () => closeDialog(accentDialog));
+        $$('#accentDialog .btn[data-accent]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const color = btn.dataset.accent;
+                document.documentElement.style.setProperty('--accent', color);
+                localStorage.setItem(ACCENT_KEY, color);
+            });
+        });
+
+        // 导入/导出
+        const ioDialog = $('#ioDialog');
+        const jsonArea = $('#jsonArea');
+        const ioHint = $('#ioHint');
+
+        function openIo() {
+            jsonArea.value = JSON.stringify(state.data, null, 2);
+            ioHint.innerHTML = state.section === 'nav'
+                ? '导航结构：<code>{ collections: [ { name, links: [ {title,url,desc,tags:["AI"]} ] } ], posts: [...] }</code>'
+                : '博客结构：<code>{ posts: [ { id, title, slug, date, tags:["AI"], content:"&lt;p&gt;HTML...&lt;/p&gt;" } ], collections: [...] }</code>';
+            openDialog(ioDialog);
+        }
+
+        $('#ioBtn').addEventListener('click', openIo);
+        $('#closeIo').addEventListener('click', () => closeDialog(ioDialog));
+        $('#saveJsonBtn').addEventListener('click', () => {
+            try {
+                const obj = JSON.parse(jsonArea.value);
+                if (!obj) throw new Error('无效的 JSON 数据');
+                if (!obj.collections) obj.collections = [];
+                if (!obj.posts) obj.posts = [];
+                state.data = obj;
+                saveData();
+                renderContent();
+                renderSidebar();
+                closeDialog(ioDialog);
+            } catch (e) { alert('JSON 无效：' + e.message); }
+        });
+
+        $('#downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'personal-site-data.json'; a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        $('#exportRssBtn').addEventListener('click', () => {
+            const xml = genRSS(state.data.posts);
+            const blob = new Blob([xml], { type: 'application/rss+xml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'feed.xml'; a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        // 帮助
+        const helpDialog = $('#helpDialog');
+        function openHelp() { openDialog(helpDialog); }
+        $('#helpBtn').addEventListener('click', openHelp);
+        $('#closeHelp').addEventListener('click', () => closeDialog(helpDialog));
+
+        // 对话框通用打开（Safari 降级）
+        function openDialog(dlg) {
+            if (typeof dlg.showModal === 'function') {
+                dlg.showModal();
+            } else {
+                dlg.setAttribute('open', '');
+            }
+
+            // 添加点击空白区域关闭功能
+            const closeOnBackdrop = (e) => {
+                if (e.target === dlg) {
+                    closeDialog(dlg);
+                }
+            };
+
+            // 清理之前的监听器（如果有的话）
+            if (dlg._backdropListener) {
+                dlg.removeEventListener('click', dlg._backdropListener);
+            }
+
+            // 保存监听器引用以便后续清理
+            dlg._backdropListener = closeOnBackdrop;
+            dlg.addEventListener('click', closeOnBackdrop);
+        }
+
+        // 对话框通用关闭
+        function closeDialog(dlg) {
+            if (typeof dlg.close === 'function') {
+                dlg.close();
+            } else {
+                dlg.removeAttribute('open');
+            }
+
+            // 清理事件监听器
+            if (dlg._backdropListener) {
+                dlg.removeEventListener('click', dlg._backdropListener);
+                dlg._backdropListener = null;
+            }
+        }
+
+        // ===== RSS 生成 =====
+        function genRSS(posts) {
+            const site = location.origin + location.pathname.replace(/index\.html?$/i, '');
+            const items = posts
+                .slice().sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map(p => {
+                    const link = site + '#/post/' + encodeURIComponent(p.slug);
+                    const desc = escapeHTML(stripHTML(p.content).slice(0, 180));
+                    return `\n<item>\n  <title>${escapeHTML(p.title)}</title>\n  <link>${link}</link>\n  <guid>${link}</guid>\n  <pubDate>${new Date(p.date).toUTCString()}</pubDate>\n  <description>${desc}</description>\n</item>`;
+                }).join('');
+            return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n<channel>\n  <title>优雅·简约个人站</title>\n  <link>${site}</link>\n  <description>个人导航与博客</description>${items}\n</channel>\n</rss>`;
+        }
+
+        // ===== 路由处理 =====
+        window.addEventListener('hashchange', () => {
+            if (state.section === 'blog') {
+                const hash = location.hash || '#/';
+                // 如果是文章内的锚点链接，不重新渲染内容
+                if (hash.includes('#/post/') && hash.split('#').length > 2) {
+                    // 这是文章内的锚点，不需要重新渲染
+                    return;
+                }
+                renderContent();
+            }
+        });
+
+        // ===== 初始化 =====
+        function initializeApp() {
+            const hash = location.hash || '#/';
+            const seg = hash.slice(2).split('/');
+            const page = seg[0];
+
+            // 检查是否有保存的模式状态
+            const savedSection = localStorage.getItem('current.section');
+
+            // 根据 URL 判断应该显示哪个模式
+            if (page === 'post' || page === 'archive' || page === 'tags') {
+                // 如果是明确的博客路由，切换到博客模式
+                switchSection('blog', true);
+                localStorage.setItem('current.section', 'blog');
+            } else if (page === '' || page === undefined) {
+                // 如果是根路径，检查上次的模式
+                if (savedSection === 'blog') {
+                    // 如果上次在博客模式，保持博客模式
+                    switchSection('blog', true);
+                } else {
+                    // 默认显示导航模式
+                    switchSection('nav');
+                    localStorage.setItem('current.section', 'nav');
+                }
+            } else {
+                // 其他情况默认显示导航模式
+                switchSection('nav');
+                localStorage.setItem('current.section', 'nav');
+            }
+        }
+
+        initializeApp();
+    </script>
+</body>
+
+</html>
